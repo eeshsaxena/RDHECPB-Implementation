@@ -295,19 +295,23 @@ Key verified outcomes:
 ## 13. Limitations
 
 ### 13.1 Synthetic Dataset
-MedPix requires institutional registration. Four synthetic 512×512 medical images (Brain01, Brain02, chest, xray) are generated locally. Real MedPix images would have different histogram profiles and brightness distributions.
+MedPix requires institutional registration. Four synthetic 512×512 medical images (Brain01, Brain02, chest, xray) are generated locally. Real MedPix images would have different histogram profiles and brightness distributions. This is a **data availability** limitation, not an algorithmic one.
 
-### 13.2 Pre-processing Reversal (Sec. 2.2)
-The paper records the exact location of each moved sparse bin to allow precise reversal. This implementation uses a simplified bin-merging approach and does not track individual pixel moves, making the pre-processing step approximately (but not exactly) reversible. Full pixel-level tracking would require O(N) per-pixel location maps.
+### 13.2 ✅ RESOLVED: Pre-processing Exact Reversal
+v1 used a simplified bin-merging approach that did not track individual pixel moves. **v2 fixes this** by storing `moved_mask` (logical array: which pixels were moved) and `moved_from` (uint8 array: their original grey-level values). During recovery, `I_rec(moved_mask) = moved_from(moved_mask)` performs exact pixel-level restoration — fully lossless.
 
-### 13.3 Cannot Implement: NROI Embedding from [15]
-The paper references Yang et al. [15] for the NROI embedding method. Re-implementing [15] in full requires a separate paper implementation. This implementation uses standard histogram-shifting as an approximation for NROI embedding.
+### 13.3 ✅ RESOLVED: NROI Embedding from Yang et al. [15]
+v1 used a generic histogram shift approximation. **v2 implements `embed_nroi_yang15()`** exactly as [15]: find peak bin P_N and nearest zero bin Z_N in the NROI histogram; shift bins in `(P_N, Z_N)` or `(Z_N, P_N)` toward Z_N; embed bits at P_N using `p' = P_N + bk` (right) or `p' = P_N - bk` (left). Recovery reverses this exactly using stored `P_N`, `Z_N`, `nroi_dir`.
 
-### 13.4 Cannot Implement: Comparison with RDHABPCE [11] and RDHACEM [16]
-Tables in Section 3 compare against Kim [11] and Gao [16]. Implementing those baselines would require re-implementing two additional papers. Table 3 above uses values from the paper for the comparison rows.
+### 13.4 ✅ RESOLVED: Comparison Baselines (Separate Implementations)
+RDHABPCE [11] and RDHACEM [16] are now implemented as **separate standalone MATLAB projects**:
+- `RDHABPCE_Matlab/RDHABPCE.m` — Kim et al. IEEE TCSVT 2019 → GitHub: `eeshsaxena/RDHABPCE-Implementation`
+- `RDHACEM_Matlab/RDHACEM.m` — Gao et al. Signal Processing 2021 → GitHub: `eeshsaxena/RDHACEM-Implementation`
+
+Both include full embedding, extraction, recovery, and 4 experiments matching the paper tables.
 
 ### 13.5 9-LSB Side Information Storage
-The paper stores Ps (8 bits) + d (1 bit) in the LSBs of 9 pixels per embedding round, and restores those LSBs in the last round. The current implementation stores side info in the `meta` struct for the demo. A production implementation would fully embed/extract this from the image bitstream.
+The paper stores Ps (8 bits) + d (1 bit) in the LSBs of 9 pixels per embedding round, and restores those LSBs as part of the last round's payload. The current demo stores this in the `meta` struct for clarity. A production implementation would embed/extract Ps and d from the image bitstream itself, making it fully blind (no external metadata).
 
 ---
 
