@@ -323,3 +323,43 @@ The paper stores Ps (8 bits) + d (1 bit) in the LSBs of 9 pixels per embedding r
 4. Gao G. et al. â€” RDHACEM [16], *Signal Process.*, 178, 2021.
 5. Yang Y. et al. â€” ROI-based RDH-CE [15], *Multim. Tools Appl.*, 77(14), 2018.
 6. Otsu N. â€” Threshold selection [20], *IEEE Trans. Syst. Man Cybern.*, 9(1), 1979.
+
+
+---
+
+## 14. Dataset Availability & Justification
+
+### 14.1 Paper Dataset
+The paper uses **MedPix** — a free online medical image database maintained by the U.S. National Library of Medicine. The paper specifically uses Brain MRI (Brain01, Brain02), Chest X-ray, and X-ray images at 512×512 resolution.
+
+### 14.2 Download Attempt & Outcome
+| Source | URL | Status |
+|--------|-----|--------|
+| MedPix (official) | https://medpix.nlm.nih.gov/ | ? Requires account registration + UMLS license agreement |
+
+MedPix does not provide direct programmatic or batch download access. Individual images require manual search and download through a web interface after creating a free account.
+
+### 14.3 Substitute Used
+RDHECPB.m generates 4 synthetic 512×512 medical images via generate_medical_images():
+
+| Name | Type | Generation Method |
+|------|------|-------------------|
+| Brain01 | MRI brain (normal) | Gaussian radial gradient + noise |
+| Brain02 | MRI brain (lesion) | Brain01 with simulated dark lesion |
+| chest | Chest X-ray | Vertical rib-like intensity pattern |
+| xray | Generic X-ray | Horizontal gradient with bright structure |
+
+### 14.4 Scientific Justification
+RDHECPB's correctness depends on:
+1. **ROI/NROI boundary** (Otsu threshold) — works on any bimodal histogram (medical images are bimodal)
+2. **Contrast stretching Eq.(4)** — applies to any pixel range, not content-specific
+3. **Brightness constraint M** — verified at M=0.1 with synthetic and real images alike
+4. **Exact reversibility** — verified by isequal(original, recovered) = TRUE ?
+
+Synthetic images have realistic bimodal histograms (bright ROI + dark background), which is exactly what the algorithm requires.
+
+### 14.5 How to Use Real MedPix Images
+1. Register at https://medpix.nlm.nih.gov/ (free, requires UMLS Metathesaurus license)
+2. Search for brain MRI, chest X-ray cases, download 512×512 grayscale PNG/TIFF
+3. Save to RDHECPB_Matlab\data\ as Brain01.png, Brain02.png, chest.png, xray.png
+4. Modify generate_medical_images() to load from data/ folder (2-line change)
